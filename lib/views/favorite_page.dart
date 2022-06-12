@@ -42,29 +42,32 @@ class _FavoritePageState extends State<FavoritePage> {
                         context.myData.removeFavoritedSong(mediItem);
                       });
                     },
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 12),
-                      onTap: () {
-                        context.push(PlayingScreen(
-                          song: mediItem,
-                          queue: favorisongs,
-                        ));
-                      },
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: SizedBox(
-                            width: 75,
-                            height: 75,
-                            child: mediItem.getImageWidget),
-                      ),
-                      trailing: Text(Const.getDurationString(
-                          mediItem.duration ?? Duration.zero)),
-                      title: Text(
-                        mediItem.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14),
+                    child: Container(
+                      color: (index%2==0)?Const.kPurple.withOpacity(0.05):Colors.white,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        onTap: () {
+                          context.push(PlayingScreen(
+                            song: mediItem,
+                            queue: favorisongs,
+                          ));
+                        },
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                              width: 75,
+                              height: 75,
+                              child: mediItem.getImageWidget),
+                        ),
+                        trailing: Text(Const.getDurationString(
+                            mediItem.duration ?? Duration.zero)),
+                        title: Text(
+                          mediItem.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14),
+                        ),
                       ),
                     ),
                   );

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:onlinemusic/util/const.dart';
 
 class SeekBar extends StatefulWidget {
   final Duration duration;
@@ -36,32 +37,54 @@ class _SeekBarState extends State<SeekBar> {
     }
     return Stack(
       children: [
-        SliderTheme(
-          data: SliderThemeData(
-            thumbShape: RoundSliderThumbShape(
-              enabledThumbRadius: 0,
-              elevation: 0,
+        Padding(
+          padding: const EdgeInsets.only(left: 6, top: 4),
+          child: SliderTheme(
+            data: SliderThemeData(
+              rangeThumbShape: RoundRangeSliderThumbShape(elevation: 0),
+              minThumbSeparation: 0,
+              inactiveTrackColor: Colors.transparent,
+              disabledInactiveTrackColor: Const.kPurple.withOpacity(0.15),
+              disabledActiveTrackColor: Const.kPurple.withOpacity(0.4),
+              overlayShape: RoundSliderOverlayShape(
+                overlayRadius: 0,
+              ),
+              thumbColor: Colors.transparent,
+              thumbShape: RoundSliderThumbShape(
+                enabledThumbRadius: 6,
+                elevation: 0,
+                disabledThumbRadius: 0,
+                pressedElevation: 0,
+              ),
+              trackShape: MyRectangularSliderTrackShape(),
+              trackHeight: 4,
             ),
-            trackHeight: 2,
-            activeTrackColor: Colors.blue.withOpacity(0.4),
-          ),
-          child: Slider(
-            max: widget.duration.inMilliseconds.toDouble(),
-            value: min(
-              widget.bufferedPosition.inMilliseconds.toDouble(),
-              widget.duration.inMilliseconds.toDouble(),
+            child: Slider(
+              inactiveColor: Colors.transparent,
+              thumbColor: Colors.transparent,
+              max: widget.duration.inMilliseconds.toDouble(),
+              value: min(
+                widget.bufferedPosition.inMilliseconds.toDouble(),
+                widget.duration.inMilliseconds.toDouble(),
+              ),
+              onChanged: null,
             ),
-            onChanged: (value) {},
           ),
         ),
         SliderTheme(
           data: SliderThemeData(
             thumbShape: RoundSliderThumbShape(
               enabledThumbRadius: 6,
+              elevation: 1,
             ),
-            inactiveTrackColor: Colors.transparent,
+            overlayShape: RoundSliderOverlayShape(
+              overlayRadius: 0,
+            ),
+            trackHeight: 4,
+            inactiveTrackColor: Colors.grey.withOpacity(0),
           ),
           child: Slider(
+            activeColor: Const.kPurple,
             max: widget.duration.inMilliseconds.toDouble(),
             value: value,
             onChanged: (value) {
@@ -81,5 +104,84 @@ class _SeekBarState extends State<SeekBar> {
         ),
       ],
     );
+  }
+}
+
+class MyRectangularSliderTrackShape extends SliderTrackShape
+    with BaseSliderTrackShape {
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required TextDirection textDirection,
+    required Offset thumbCenter,
+    bool isDiscrete = false,
+    bool isEnabled = false,
+  }) {
+    assert(context != null);
+    assert(offset != null);
+    assert(parentBox != null);
+    assert(sliderTheme != null);
+    assert(sliderTheme.disabledActiveTrackColor != null);
+    assert(sliderTheme.disabledInactiveTrackColor != null);
+    assert(sliderTheme.activeTrackColor != null);
+    assert(sliderTheme.inactiveTrackColor != null);
+    assert(sliderTheme.thumbShape != null);
+    assert(enableAnimation != null);
+    assert(textDirection != null);
+    assert(thumbCenter != null);
+    assert(isEnabled != null);
+    assert(isDiscrete != null);
+    // If the slider [SliderThemeData.trackHeight] is less than or equal to 0,
+    // then it makes no difference whether the track is painted or not,
+    // therefore the painting can be a no-op.
+    if (sliderTheme.trackHeight! <= 0) {
+      return;
+    }
+
+    // Assign the track segment paints, which are left: active, right: inactive,
+    // but reversed for right to left text.
+    final ColorTween activeTrackColorTween = ColorTween(
+        begin: sliderTheme.disabledActiveTrackColor,
+        end: sliderTheme.activeTrackColor);
+    final ColorTween inactiveTrackColorTween = ColorTween(
+        begin: sliderTheme.disabledInactiveTrackColor,
+        end: sliderTheme.inactiveTrackColor);
+    final Paint activePaint = Paint()
+      ..color = activeTrackColorTween.evaluate(enableAnimation)!;
+    final Paint inactivePaint = Paint()
+      ..color = inactiveTrackColorTween.evaluate(enableAnimation)!;
+    final Paint leftTrackPaint;
+    final Paint rightTrackPaint;
+    switch (textDirection) {
+      case TextDirection.ltr:
+        leftTrackPaint = activePaint;
+        rightTrackPaint = inactivePaint;
+        break;
+      case TextDirection.rtl:
+        leftTrackPaint = inactivePaint;
+        rightTrackPaint = activePaint;
+        break;
+    }
+
+    final Rect trackRect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+
+    final Rect leftTrackSegment = Rect.fromLTRB(
+        trackRect.left, trackRect.top, thumbCenter.dx, trackRect.bottom);
+    if (!leftTrackSegment.isEmpty)
+      context.canvas.drawRRect(RRect.fromRectAndRadius(leftTrackSegment,Radius.circular(4)) , leftTrackPaint);
+    final Rect rightTrackSegment = Rect.fromLTRB(
+        thumbCenter.dx, trackRect.top, trackRect.right, trackRect.bottom);
+    if (!rightTrackSegment.isEmpty)
+      context.canvas.drawRRect(RRect.fromRectAndRadius(rightTrackSegment,Radius.circular(4)), rightTrackPaint);
   }
 }

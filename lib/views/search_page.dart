@@ -1,14 +1,18 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:onlinemusic/models/audio.dart';
+import 'package:onlinemusic/util/const.dart';
 import 'package:onlinemusic/util/extensions.dart';
+import 'package:onlinemusic/views/playing_screen/searched_all_queue.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../services/search_service.dart';
 import '../widgets/search_cards.dart';
 
 class SearchPage extends StatefulWidget {
-  SearchPage({Key? key}) : super(key: key);
+  String searchText;
+  SearchPage({Key? key, required this.searchText}) : super(key: key);
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -17,13 +21,23 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   var scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController searcController = TextEditingController();
+
   bool findMusic = false;
   bool searchStarted = false;
   List<SongModel> getMusicList = [];
   @override
+  void initState() {
+    searcController.text = widget.searchText;
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: BackButton(color: Const.kPurple),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         title: _searchBar(),
       ),
       key: scaffoldKey,
@@ -39,19 +53,41 @@ class _SearchPageState extends State<SearchPage> {
                   if ((snapshot.data ?? []).isEmpty) {
                     return SizedBox();
                   }
+                  List<MediaItem> queue =
+                      snapshot.data!.map((e) => e.toMediaItem).toList();
+                  List<MediaItem> filteredList = [];
+                  if (queue.length > 3) {
+                    filteredList = queue.sublist(0, 4);
+                  } else {
+                    filteredList = queue;
+                  }
                   //firebase
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      buildTitle("Kullanıcıların Yükledikleri Müzikler:"),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          buildTitle("Kullanıcıların Yükledikleri Müzikler:"),
+                          if (queue.length > 3)
+                            TextButton(
+                              onPressed: () {
+                                context.push(
+                                  SearchedAllQueue(
+                                      queue: queue,
+                                      searchText: searcController.text),
+                                );
+                              },
+                              child: Text(
+                                "Hepsini gör",
+                                style: TextStyle(color: Const.kPurple),
+                              ),
+                            ),
+                        ],
+                      ),
                       Column(
-                          children: snapshot.data!
-                              .map((e) => buildMusicItem(
-                                  e.toMediaItem,
-                                  snapshot.data!
-                                      .map((e) => e.toMediaItem)
-                                      .toList(),
-                                  context))
+                          children: filteredList
+                              .map((e) => buildMusicItem(e, queue, context))
                               .toList()),
                     ],
                   );
@@ -62,59 +98,110 @@ class _SearchPageState extends State<SearchPage> {
                 }
               },
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                buildTitle("Cihazdaki Müzikler:"),
-                Column(
-                    children: SearchService.fetchMusicFromQuery(
-                            searcController.text.toLowerCase(), context)
-                        .map((e) => buildMusicItem(
-                            e.toMediaItem,
-                            SearchService.fetchMusicFromQuery(
-                                    searcController.text.toLowerCase(), context)
-                                .map((e) => e.toMediaItem)
-                                .toList(),
-                            context))
-                        .toList()),
-              ],
-            ),
-            FutureBuilder<List<Video>>(
-              future:
-                  SearchService.fetchVideos(searcController.text.toLowerCase()),
-              builder:
-                  (BuildContext context, AsyncSnapshot<List<Video>> snapshot) {
-                if (snapshot.hasData) {
-                  if ((snapshot.data ?? []).isEmpty) {
-                    return SizedBox();
-                  }
-                  //youtube
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      buildTitle("Youtube Müzikleri:"),
-                      Column(
-                        children: snapshot.data!
-                            .map((e) => buildMusicItem(
-                                e.toMediaItem,
-                                snapshot.data!
-                                    .map((e) => e.toMediaItem)
-                                    .toList(),
-                                context))
-                            .toList(),
-                      ),
-                    ],
-                  );
-                } else {
-                  return Center(
-                    child: CupertinoActivityIndicator(),
-                  );
-                }
-              },
-            ),
+            buildLocalAudios(context),
+            buildYoutubeAudios(),
           ],
         ),
       ),
+    );
+  }
+
+  FutureBuilder<List<Video>> buildYoutubeAudios() {
+    return FutureBuilder<List<Video>>(
+      future: SearchService.fetchVideos(searcController.text.toLowerCase()),
+      builder: (BuildContext context, AsyncSnapshot<List<Video>> snapshot) {
+        if ((snapshot.data ?? []).isEmpty) {
+          return SizedBox();
+        }
+        List<MediaItem> queue =
+            snapshot.data!.map((e) => e.toMediaItem).toList();
+        List<MediaItem> filteredList = [];
+
+        if (queue.length > 3) {
+          filteredList = queue.sublist(0, 3);
+        } else {
+          filteredList = queue;
+        }
+
+        //youtube
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                buildTitle("Youtube Müzikleri:"),
+                if (queue.length > 3)
+                TextButton(
+                  onPressed: () {
+                    context.push(
+                      SearchedAllQueue(
+                          queue: queue, searchText: searcController.text),
+                    );
+                  },
+                  child: Text(
+                    "Hepsini gör",
+                    style: TextStyle(color: Const.kPurple),
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: filteredList
+                  .map((e) => buildMusicItem(
+                      e,
+                      snapshot.data!.map((e) => e.toMediaItem).toList(),
+                      context))
+                  .toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget buildLocalAudios(BuildContext context) {
+    List<MediaItem>? filteredList = [];
+    List<MediaItem> queue = SearchService.fetchMusicFromQuery(
+            searcController.text.toLowerCase(), context)
+        .map((y) => y.toMediaItem)
+        .toList();
+    if (queue.isEmpty) {
+      return SizedBox();
+    }
+    if (queue.length > 3) {
+      filteredList = queue.sublist(0, 3);
+    } else {
+      filteredList = queue;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            buildTitle("Cihazdaki Müzikler:"),
+            if (queue.length > 3)
+            TextButton(
+              onPressed: () {
+                context.push(
+                  SearchedAllQueue(
+                      queue: queue, searchText: searcController.text),
+                );
+              },
+              child: Text(
+                "Hepsini gör",
+                style: TextStyle(color: Const.kPurple),
+              ),
+            ),
+          ],
+        ),
+        Column(
+            children: filteredList
+                .map((e) => buildMusicItem(e, queue, context))
+                .toList()),
+      ],
     );
   }
 
@@ -146,35 +233,40 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _searchBar() {
     return Container(
-        width: MediaQuery.of(context).size.width,
-        decoration: BoxDecoration(color: Theme.of(context).backgroundColor),
+      height: 36,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50),
+        color: Const.kPurple,
+      ),
+      child: Center(
         child: TextField(
-            autofocus: true,
-            controller: searcController,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: "Müzik Bul",
-              hintStyle: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).secondaryHeaderColor),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  Icons.close,
-                  size: 25,
-                  color: Theme.of(context).iconTheme.color,
-                ),
-                onPressed: () {
-                  setState(() {
-                    searcController.text = "";
-                  });
-                },
-              ),
+          onSubmitted: (c) {
+            setState(() {});
+          },
+          textInputAction: TextInputAction.search,
+          cursorColor: Color.fromARGB(255, 255, 255, 255),
+          cursorWidth: 0.5,
+          controller: searcController,
+          style: TextStyle(
+              color: Color.fromARGB(255, 255, 255, 255),
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.5),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.only(left: 20, top: 10),
+            border: InputBorder.none,
+            hintText: "Müzik ara",
+            hintStyle: TextStyle(
+                color: Color.fromARGB(255, 255, 255, 255).withOpacity(0.7),
+                fontSize: 16.5),
+            suffixIcon: Icon(
+              Icons.search,
+              color: Const.kPurple,
             ),
-            textInputAction: TextInputAction.search,
-            onSubmitted: (value) {
-              setState(() {});
-            }));
+          ),
+        ),
+      ),
+    );
   }
 }

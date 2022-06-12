@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.all(8.0),
                             child: Text("Welcome to the",
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                     fontSize: 20,
                                     color: Colors.black)),
                           ),
@@ -57,52 +57,21 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.black)),
                           ),
                           SizedBox(height: 30),
-                          Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            child: TextField(
-                              controller: _emailController,
-                              style: TextStyle(
-                                color: Colors.black,
-                              ),
-                              cursorColor: Colors.black,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: InputDecoration(
-                                prefixIcon: Icon(
-                                  Icons.mail,
-                                  color: Colors.black,
-                                ),
-                                hintText: 'E-Mail',
-                                prefixText: ' ',
-                                hintStyle: TextStyle(color: Colors.black),
-                                border: InputBorder.none,
-                              ),
-                            ),
+                          textFieldWidgets(
+                            controller: _emailController,
+                            hintText: "E-mail",
+                            icon: Icons.mail,
+                            keyboardType: TextInputType.emailAddress,
                           ),
                           SizedBox(
                             height: size.height * 0.02,
                           ),
-                          Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            child: TextField(
-                              controller: _passwordController,
-                              style: TextStyle(
-                                color: Colors.black,
-                              ),
-                              cursorColor: Colors.black,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: InputDecoration(
-                                prefixIcon: Icon(
-                                  Icons.lock,
-                                  color: Colors.black,
-                                ),
-                                hintText: 'password',
-                                prefixText: ' ',
-                                hintStyle: TextStyle(color: Colors.black),
-                                border: InputBorder.none,
-                              ),
-                            ),
+                          textFieldWidgets(
+                            controller: _passwordController,
+                            hintText: "Password",
+                            icon: Icons.lock,
+                            keyboardType: TextInputType.emailAddress,
+                            obscureText: true,
                           ),
                           SizedBox(
                             height: size.height * 0.08,
@@ -201,6 +170,43 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Material textFieldWidgets({
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    IconData? icon,
+    String? hintText,
+    bool obscureText = false,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.all(Radius.circular(10)),
+      child: TextField(
+        cursorWidth: 1,
+        obscureText: obscureText,
+        obscuringCharacter: "•",
+
+        controller: controller,
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.black,
+        ),
+        cursorColor: Colors.black,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          contentPadding: EdgeInsets.symmetric(vertical: 18),
+          suffixIcon: Icon(
+            icon,
+            color: Colors.black,
+          ),
+          hintText: hintText,
+          prefixText: '     ',
+          hintStyle: TextStyle(color: Colors.grey),
+          border: InputBorder.none,
         ),
       ),
     );

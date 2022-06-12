@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +8,16 @@ import 'package:onlinemusic/models/genre.dart';
 import 'package:onlinemusic/models/head_music.dart';
 import 'package:onlinemusic/models/youtube_genre.dart';
 import 'package:onlinemusic/models/youtube_playlist.dart';
+import 'package:onlinemusic/services/audios_bloc.dart';
+import 'package:onlinemusic/services/auth.dart';
 import 'package:onlinemusic/services/youtube_service.dart';
 import 'package:onlinemusic/util/const.dart';
 import 'package:onlinemusic/util/extensions.dart';
 import 'package:onlinemusic/views/playing_screen/playing_screen.dart';
+import 'package:onlinemusic/views/playing_screen/playlists_screen.dart';
 import 'package:onlinemusic/views/profile_screen.dart';
-import 'package:page_view_indicators/page_view_indicators.dart';
+import 'package:onlinemusic/views/search_page.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../models/usermodel.dart';
@@ -30,10 +35,13 @@ class _YoutubeHomePageState extends State<HomePage> {
   YoutubeExplode yt = YoutubeExplode();
   final _currentPageNotifier = ValueNotifier<int>(0);
   List<YoutubeGenre> genres = [];
+  Genre selectedGenre = Genre(id: 1, name: "Rock");
   List<HeadMusic> headSongs = [];
   late PageController _pageController;
+  List<Color> colors = [];
   Timer? timer;
   bool showHeadMusic = true;
+  int? r, g, b;
 
   @override
   void initState() {
@@ -42,6 +50,15 @@ class _YoutubeHomePageState extends State<HomePage> {
     headSongs = [];
     _pageController = PageController();
 
+    colors = List.generate(
+      Const.genres.length,
+      (index) => Color.fromARGB(
+        180,
+        Random().nextInt(255),
+        Random().nextInt(255),
+        Random().nextInt(255),
+      ),
+    );
     services.getMusicHome().then((value) {
       if (value != null) {
         genres = value.genres ?? [];
@@ -81,310 +98,370 @@ class _YoutubeHomePageState extends State<HomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  TextEditingController controller = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Ana Sayfa"),
-        actions: [
-          StreamBuilder<DocumentSnapshot>(
-            stream: _firestore
-                .collection("Users")
-                .doc(_auth.currentUser!.uid)
-                .snapshots(),
-            builder:
-                (BuildContext context, AsyncSnapshot<DocumentSnapshot> veri) {
-              if (veri.hasData) {
-                UserModel userModel = UserModel.fromMap(
-                    veri.data!.data() as Map<String, dynamic>);
-
-                return InkWell(
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (c) =>
-                                ProfileScreen(userModel: userModel)));
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Container(
-                        child: userModel.image == null
-                            ? CircleAvatar(
-                                maxRadius: 25,
-                                child:
-                                    Icon(Icons.supervised_user_circle_outlined),
-                              )
-                            : userModel.image!.isNotEmpty
-                                ? CircleAvatar(
-                                    maxRadius: 25,
-                                    backgroundImage:
-                                        NetworkImage(userModel.image!),
-                                  )
-                                : CircleAvatar(
-                                    maxRadius: 25,
-                                    child: Icon(
-                                        Icons.supervised_user_circle_outlined),
-                                  )),
-                  ),
-                );
-              } else {
-                return CircleAvatar(
-                  maxRadius: 30,
-                  child: Icon(Icons.supervised_user_circle_outlined),
-                );
-              }
-            },
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
-      body: SafeArea(
-        child: ListView(
-          physics: BouncingScrollPhysics(),
-          padding: EdgeInsets.only(bottom: 8, top: 16),
-          children: [
-            headSongs.isNotEmpty
-                ? AnimatedCrossFade(
-                    firstChild: SizedBox(),
-                    secondChild: Stack(
-                      clipBehavior: Clip.none,
+      // backgroundColor: Color(0xff4F3453).withOpacity(1),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: Stack(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(bottom: 17.5),
+                    padding: EdgeInsets.only(left: 20),
+                    width: double.maxFinite,
+                    decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage("assets/images/bg.jpg"),
+                          fit: BoxFit.cover,
+                        ),
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(30),
+                            bottomRight: Radius.circular(30))),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
-                          height: MediaQuery.of(context).size.width / 2 + 20,
-                          width: double.maxFinite,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: PageView.builder(
-                              key: const PageStorageKey("headMusics"),
-                              controller: _pageController,
-                              physics: BouncingScrollPhysics(),
-                              itemCount: headSongs.length,
-                              onPageChanged: (s) {
-                                _currentPageNotifier.value = s;
-                              },
-                              scrollDirection: Axis.horizontal,
-                              itemBuilder: (c, i) {
-                                return InkWell(
-                                  onTap: () async {
-                                    //? oynatma ekranına gidilecek
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(
-                                        right: 5,
-                                        left: 5,
-                                        child: Card(
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12)),
-                                          shadowColor:
-                                              Const.kWhite.withOpacity(0.5),
-                                          elevation: 2,
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            child: Image.network(
-                                              headSongs[i].imageQuality(false),
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 0,
-                                        right: 9,
-                                        left: 9,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(
-                                                12,
-                                              ),
-                                            ),
-                                          ),
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 5,
-                                            vertical: 5,
-                                          ),
-                                          width: double.infinity,
-                                          child: Center(
-                                            child: Text(
-                                              headSongs[i].title ?? "",
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                          height: 80,
                         ),
-                        Positioned(
-                          bottom: -13,
-                          right: 0,
-                          left: 0,
-                          child: CirclePageIndicator(
-                            selectedSize: 8,
-                            selectedDotColor: Const.kWhite.withOpacity(0.7),
-                            dotColor: Const.kWhite.withOpacity(0.1),
-                            currentPageNotifier: _currentPageNotifier,
-                            itemCount: headSongs.length,
-                          ),
+                        Text(
+                          "Hoşgeldin",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w200),
+                        ),
+                        Text(
+                          FirebaseAuth.instance.currentUser!.displayName!,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 46,
+                              letterSpacing: 0.3,
+                              fontWeight: FontWeight.w900),
+                        ),
+                        SizedBox(
+                          height: 64,
                         ),
                       ],
                     ),
-                    crossFadeState: showHeadMusic
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                    duration: Duration(milliseconds: 400),
-                  )
-                : SizedBox(),
-            Column(
-              children: Const.genres.map((e) {
-                return getGenreWidget(e);
-              }).toList(),
+                  ),
+                  Positioned(
+                    left: 10,
+                    top: 25,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            UserModel? userModel = await AuthService()
+                                .getUserFromId(
+                                    FirebaseAuth.instance.currentUser!.uid);
+                            if (userModel != null) {
+                              context.push(ProfileScreen(userModel: userModel));
+                            }
+                          },
+                          icon: Icon(
+                            Icons.account_circle_rounded,
+                            size: 30,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Stack(
+                          children: [
+                            IconButton(
+                              onPressed: () {},
+                              icon: Icon(
+                                Icons.notifications_none_rounded,
+                                size: 28,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Positioned(
+                              right:12,
+                              top: 10,
+                              child: Container(
+                                height: 9,
+                                width: 9,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 30,
+                    left: 16,
+                    right: 16,
+                    child: Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          // BoxShadow(
+                          //     color: Colors.white.withOpacity(0.5),
+                          //     blurRadius: 3,
+                          //     offset: Offset(0, -2)),
+                          BoxShadow(
+                              color:
+                                  Color.fromARGB(255, 0, 0, 0).withOpacity(0.4),
+                              blurRadius: 3,
+                              offset: Offset(0, 2)),
+                        ],
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: TextField(
+                        onSubmitted: (c) {
+                          if (c != "") {
+                            context.push(SearchPage(searchText: c));
+                          }
+                        },
+                        textInputAction: TextInputAction.search,
+                        cursorColor: Const.kPurple,
+                        cursorWidth: 0.5,
+                        controller: controller,
+                        style: TextStyle(
+                            color: Const.kPurple,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 0.5),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.only(left: 20, top: 10),
+                          border: InputBorder.none,
+                          hintText: "Müzik ara",
+                          hintStyle: TextStyle(
+                              color: Const.kPurple.withOpacity(0.3),
+                              fontSize: 17),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Const.kPurple,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Column(
-              children: genres.map((e) {
-                return getYoutubeGenreWidget(e);
-              }).toList(),
+          ];
+        },
+        body: SafeArea(
+          child: ListView(
+            physics: BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              bottom: 16,
             ),
-          ],
+            children: [
+              headSongs.isNotEmpty
+                  ? AnimatedCrossFade(
+                      firstChild: SizedBox(),
+                      secondChild: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.width / 2 + 50,
+                            width: double.maxFinite,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 5),
+                                child: PageView.builder(
+                                  key: const PageStorageKey("headMusics"),
+                                  controller: _pageController,
+                                  physics: BouncingScrollPhysics(),
+                                  itemCount: headSongs.length,
+                                  onPageChanged: (s) {
+                                    _currentPageNotifier.value = s;
+                                  },
+                                  scrollDirection: Axis.horizontal,
+                                  itemBuilder: (c, i) {
+                                    return InkWell(
+                                      onTap: () async {
+                                        //? oynatma ekranına gidilecek
+                                      },
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned.fill(
+                                            right: 5,
+                                            left: 5,
+                                            top: 15,
+                                            bottom: 10,
+                                            child: Card(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.vertical(
+                                                        bottom: Radius.circular(
+                                                            12)),
+                                              ),
+                                              shadowColor:
+                                                  Const.kPurple.withOpacity(0),
+                                              elevation: 6,
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.vertical(
+                                                        bottom: Radius.circular(
+                                                            12)),
+                                                child: Image.network(
+                                                  headSongs[i]
+                                                      .imageQuality(false),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 0,
+                                            right: 9,
+                                            left: 9,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Const.kPurple,
+                                                borderRadius:
+                                                    BorderRadius.vertical(
+                                                  top: Radius.circular(12),
+                                                ),
+                                              ),
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 5,
+                                                vertical: 7,
+                                              ),
+                                              width: double.infinity,
+                                              child: Center(
+                                                child: Text(
+                                                  headSongs[i].title ?? "",
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          //! burası yapılcak
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            left: 0,
+                            child: Center(
+                              child: SmoothPageIndicator(
+                                controller: _pageController,
+                                count: headSongs.length,
+                                effect: ExpandingDotsEffect(
+                                  activeDotColor: Const.kPurple,
+                                  dotColor: Const.kPurple.withOpacity(0.2),
+                                  dotHeight: 10,
+                                  dotWidth: 10,
+                                  spacing: 15,
+                                ),
+                              ),
+                            ),
+                          )
+                          // Positioned(
+                          //   bottom: 0,
+                          //   right: 0,
+                          //   left: 0,
+                          //   child: Text("yap"),
+                          // ),
+                        ],
+                      ),
+                      // currentPageNotifier: _currentPageNotifier,
+                      //         itemCount: headSongs.length,
+                      crossFadeState: showHeadMusic
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      duration: Duration(milliseconds: 400),
+                    )
+                  : SizedBox(),
+              headTextWidget("Kullanıcı müzikleri"),
+              Container(
+                margin: EdgeInsets.only(
+                  left: 10,
+                  right: 10,
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Const.kWhite,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Const.kPurple.withOpacity(0.4),
+                        blurRadius: 6,
+                        offset: Offset(3, 3),
+                      )
+                    ]),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: getGenres(Const.genres),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: getGenreWidget(selectedGenre),
+                    ),
+                  ],
+                ),
+              ),
+              headTextWidget("Youtube müzik"),
+              // Column(
+              //   children: Const.genres.map((e) {
+              //     return getGenreWidget(e);
+              //   }).toList(),
+              // ),
+              Column(
+                children: genres.map((e) {
+                  return getYoutubeGenreWidget(e);
+                }).toList(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget getBody() {
-    return SafeArea(
-      child: ListView(
-        physics: BouncingScrollPhysics(),
-        padding: EdgeInsets.only(bottom: 8, top: 16),
+  Padding headTextWidget(String text) {
+    return Padding(
+      padding: EdgeInsets.only(top: 18, right: 10, left: 10, bottom: 18),
+      child: Row(
         children: [
-          headSongs.isNotEmpty
-              ? AnimatedCrossFade(
-                  firstChild: SizedBox(),
-                  secondChild: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).size.width / 2 + 20,
-                        width: double.maxFinite,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: PageView.builder(
-                            key: const PageStorageKey("headMusics"),
-                            controller: _pageController,
-                            physics: BouncingScrollPhysics(),
-                            itemCount: headSongs.length,
-                            onPageChanged: (s) {
-                              _currentPageNotifier.value = s;
-                            },
-                            scrollDirection: Axis.horizontal,
-                            itemBuilder: (c, i) {
-                              return InkWell(
-                                onTap: () async {
-                                  //? oynatma ekranına gidilecek
-                                },
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      right: 5,
-                                      left: 5,
-                                      child: Card(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12)),
-                                        shadowColor:
-                                            Const.kWhite.withOpacity(0.5),
-                                        elevation: 2,
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          child: Image.network(
-                                            headSongs[i].imageQuality(false),
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 0,
-                                      right: 9,
-                                      left: 9,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 5,
-                                          vertical: 5,
-                                        ),
-                                        width: double.infinity,
-                                        child: Center(
-                                          child: Text(
-                                            headSongs[i].title ?? "",
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -13,
-                        right: 0,
-                        left: 0,
-                        child: CirclePageIndicator(
-                          selectedSize: 8,
-                          selectedDotColor: Const.kWhite.withOpacity(0.7),
-                          dotColor: Const.kWhite.withOpacity(0.1),
-                          currentPageNotifier: _currentPageNotifier,
-                          itemCount: headSongs.length,
-                        ),
-                      ),
-                    ],
-                  ),
-                  crossFadeState: showHeadMusic
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: Duration(milliseconds: 400),
-                )
-              : SizedBox(),
-          Column(
-            children: Const.genres.map((e) {
-              return getGenreWidget(e);
-            }).toList(),
-          ),
-          Column(
-            children: genres.map((e) {
-              return getYoutubeGenreWidget(e);
-            }).toList(),
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Const.kPurple,
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
           ),
         ],
       ),
@@ -392,32 +469,53 @@ class _YoutubeHomePageState extends State<HomePage> {
   }
 
   Widget getGenreWidget(Genre genre) {
-    return StreamBuilder<List<Audio>>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: context.myData.aB.getAudiosFromGenre(genre.id),
-      initialData: [],
       builder: (context, snapshot) {
-        List<Audio> audios = snapshot.data ?? [];
-        if (audios.isEmpty) {
+        if (!snapshot.hasData) {
           return SizedBox();
         } else {
+          List<Audio> audios =
+              snapshot.data!.docs.map((e) => Audio.fromMap(e.data())).toList();
+          if (audios.isEmpty) {
+            return SizedBox();
+          }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16, bottom: 8, left: 12),
-                child: Text(
-                  genre.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(top: 16, bottom: 8, left: 12),
+                    child: Text(
+                      genre.name,
+                      style: TextStyle(
+                        color: Const.kPurple,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                    ),
                   ),
-                ),
+                  TextButton(
+                    onPressed: () {
+                      context.push(PlaylistScreen.Genre(
+                        genre: selectedGenre,
+                      ));
+                    },
+                    child: Text(
+                      audios.length.toString() + " müzik",
+                      style: TextStyle(color: Const.kPurple),
+                    ),
+                  ),
+                ],
               ),
               Container(
-                height: 140,
+                height: 222,
                 child: ListView.builder(
                   physics: BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   scrollDirection: Axis.horizontal,
                   itemCount: audios.length,
                   itemBuilder: (c, i) {
@@ -431,50 +529,61 @@ class _YoutubeHomePageState extends State<HomePage> {
                           ),
                         );
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SizedBox(
-                          width: 124,
-                          child: Stack(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(12),
+                              bottom: Radius.circular(8),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Const.kPurple.withOpacity(0.2),
+                                blurRadius: 5,
+                                offset: Offset(-6, 5),
+                              )
+                            ]),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  audio.image,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                bottom: -0.5,
-                                right: 0,
-                                left: 0,
-                                top: 50,
-                                child: Container(
-                                  padding: EdgeInsets.only(bottom: 3),
-                                  decoration: BoxDecoration(
+                              SizedBox(
+                                width: 160,
+                                height: 160,
+                                child: Positioned.fill(
+                                  child: ClipRRect(
                                     borderRadius: BorderRadius.vertical(
-                                      bottom: Radius.circular(8),
-                                    ),
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.black,
-                                        Colors.transparent,
-                                      ],
-                                      begin: Alignment.bottomCenter,
-                                      end: Alignment.topCenter,
+                                        top: Radius.circular(12)),
+                                    child: Image.network(
+                                      audio.image,
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
-                                  child: Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: Text(
-                                      audio.title,
-                                      maxLines: 1,
-                                      textAlign: TextAlign.center,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Const.kWhite,
-                                      ),
+                                ),
+                              ),
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: Const.kPurple.withOpacity(0.5),
+                              ),
+                              Container(
+                                height: 29,
+                                width: 160,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.vertical(
+                                    bottom: Radius.circular(8),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    audio.title,
+                                    maxLines: 1,
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color.fromARGB(255, 0, 0, 0),
                                     ),
                                   ),
                                 ),
@@ -501,80 +610,123 @@ class _YoutubeHomePageState extends State<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 8, left: 12),
-          child: Text(
-            youtubeGenre.title ?? "",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-            ),
-          ),
-        ),
         Divider(
-          height: 2,
-          thickness: 2,
-          color: Colors.white12,
+          height: 4,
+          thickness: 4,
+          color: Const.kPurple.withOpacity(0.08),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              child: RichText(
+                text: TextSpan(
+                    text: youtubeGenre.title!,
+                    style: TextStyle(
+                      color: Const.kPurple,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: "  " +
+                            youtubeGenre.playlists!.length.toString() +
+                            (!youtubeGenre.playlists!.first.isPlaylist
+                                ? " Video"
+                                : " liste"),
+                        style: TextStyle(
+                            color: Const.kPurple,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w300),
+                      ),
+                    ]),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                context.push(
+                    PlaylistScreen.YoutubeGenre(youtubeGenre: youtubeGenre));
+              },
+              child: Text(
+                "See All",
+                style: TextStyle(color: Const.kPurple),
+              ),
+            ),
+          ],
         ),
         Container(
-          height: youtubeGenre.playlists!.first.isPlaylist
-              ? 140
-              : 124 / 16 * 9 + 16,
+          height: youtubeGenre.playlists!.first.isPlaylist ? 222 : 183,
           child: ListView.builder(
             physics: BouncingScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             scrollDirection: Axis.horizontal,
             itemCount: youtubeGenre.playlists?.length,
             itemBuilder: (c, i) {
               YoutubePlaylist myPlaylist = youtubeGenre.playlists![i];
-              return InkWell(
-                onTap: () {
-                  //? playlist ekranına gidicek
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: SizedBox(
-                    width: 124,
-                    child: Stack(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: myPlaylist.isPlaylist ? 1 : 16 / 9,
-                          child: Builder(
-                            builder: (context) {
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  myPlaylist.imageQuality(
-                                    false,
-                                  ),
-                                  fit: BoxFit.cover,
-                                ),
-                              );
-                            },
-                          ),
+              return Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                child: InkWell(
+                  customBorder: RoundedRectangleBorder(
+                      side: BorderSide(
+                    color: Const.kPurple,
+                    width: 3,
+                  )),
+                  splashColor: Const.kPurple,
+                  radius: 0,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(12),
+                    bottom: Radius.circular(8),
+                  ),
+                  onTap: () {},
+                  child: Container(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(12),
+                          bottom: Radius.circular(8),
                         ),
-                        Positioned(
-                          bottom: -0.5,
-                          right: 0,
-                          left: 0,
-                          top: myPlaylist.isPlaylist ? 50 : 30,
-                          child: Container(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Const.kPurple.withOpacity(0.2),
+                            blurRadius: 5,
+                            offset: Offset(-6, 5),
+                          )
+                        ]),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: myPlaylist.isPlaylist ? 160 : 214,
+                            child: AspectRatio(
+                              aspectRatio: myPlaylist.isPlaylist ? 1 : 16 / 9,
+                              child: Builder(
+                                builder: (context) {
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(12)),
+                                    child: Image.network(
+                                      myPlaylist.imageQuality(
+                                        true,
+                                      ),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: myPlaylist.isPlaylist ? 160 : 214,
+                            height: 20,
                             padding: EdgeInsets.only(bottom: 3),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.vertical(
                                 bottom: Radius.circular(8),
                               ),
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.black,
-                                  Colors.transparent,
-                                ],
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                              ),
+                              color: Const.kWhite,
                             ),
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
+                            child: Center(
                               child: Text(
                                 myPlaylist.title ?? "",
                                 maxLines: 1,
@@ -582,13 +734,13 @@ class _YoutubeHomePageState extends State<HomePage> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Const.kWhite,
+                                  color: Color.fromARGB(255, 0, 0, 0),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -597,6 +749,124 @@ class _YoutubeHomePageState extends State<HomePage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget getGenres(List<Genre> genres) {
+    return Container(
+      height: 135,
+      // color: Colors.orange.withOpacity(0.4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Text(
+              "Kategoriler",
+              style: TextStyle(
+                color: Const.kPurple,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ),
+          Container(
+            height: 112,
+            child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: genres.length,
+                itemBuilder: (c, i) {
+                  List<Audio> audios =
+                      AudiosBloc().getAudioFromGenreId(genres[i].id);
+                  bool isSelectedGenre = selectedGenre == genres[i];
+                  return audios.isEmpty
+                      ? SizedBox()
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                selectedGenre = genres[i];
+                                setState(() {});
+                              },
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 75,
+                                    width: 75,
+                                    margin: EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                        fit: BoxFit.cover,
+                                        image: NetworkImage(audios.first.image),
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      // color: isSelectedGenre
+                                      //     ? Const.kPurple
+                                      //     : Const.kPurple.withOpacity(0.2),
+                                    ),
+                                    // child: Center(
+                                    //   child: Text(
+                                    //     genres[i].name,
+                                    //     style: TextStyle(
+                                    //       fontSize: isSelectedGenre ? 18 : 15,
+                                    //       color: isSelectedGenre
+                                    //           ? Colors.white
+                                    //           : Const.kPurple,
+                                    //       // shadows: [
+                                    //       //   BoxShadow(
+                                    //       //     color: Colors.grey.shade700,
+                                    //       //     blurRadius: 3,
+                                    //       //   )
+                                    //       // ],
+                                    //     ),
+                                    //   ),
+                                    // ),
+                                  ),
+                                  Positioned(
+                                    left: 12,
+                                    top: 12,
+                                    child: Container(
+                                      height: 75,
+                                      width: 75,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: isSelectedGenre
+                                            ? Colors.black38
+                                            : Colors.black.withOpacity(0.75),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          genres[i].name,
+                                          style: TextStyle(
+                                            fontSize: isSelectedGenre ? 19 : 15,
+                                            color: isSelectedGenre
+                                                ? Colors.white
+                                                : Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              audios.length.toString() + "  Müzik",
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  overflow: TextOverflow.ellipsis,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        );
+                }),
+          ),
+        ],
+      ),
     );
   }
 }

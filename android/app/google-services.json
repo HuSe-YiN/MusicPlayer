@@ -33,6 +33,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:446906882706:android:4411b3207898754bcaa44b",
+        "android_client_info": {
+          "package_name": "com.huseyin.onlinemusicplayer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "446906882706-vsm8bdi0jb9a43hr4p79l5shigigkjtd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqgLlIOf0198BlwLxVmqBbGORBFavQ4RQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "446906882706-vsm8bdi0jb9a43hr4p79l5shigigkjtd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

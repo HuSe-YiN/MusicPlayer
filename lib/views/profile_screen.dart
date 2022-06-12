@@ -1,11 +1,11 @@
 import 'dart:io';
-
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onlinemusic/util/const.dart';
+import 'package:onlinemusic/util/extensions.dart';
+import 'package:onlinemusic/views/edit_profile_screen.dart';
 import '../models/usermodel.dart';
-import '../services/storage_bloc.dart';
-import '../services/user_status_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserModel userModel;
@@ -15,23 +15,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _bio = TextEditingController();
-  final ImagePicker _pickerImage = ImagePicker();
-  final StorageBloc storageService = StorageBloc();
-  dynamic _pickImage;
-  XFile? profileImage;
-  final UserStatusService statusService = UserStatusService();
-  @override
-  void initState() {
-    super.initState();
-    _nameController.text = widget.userModel.userName ?? "";
-    _emailController.text = widget.userModel.email ?? "";
-    _bio.text = widget.userModel.bio ?? "";
-  }
+  
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+ 
+  XFile? profileImage;
+  dynamic _pickImage;
+
+  
   Widget imagePlace() {
     if (widget.userModel.image != null) {
       setState(() {
@@ -41,16 +32,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (profileImage != null) {
       print("resim : " + profileImage!.path);
       return CircleAvatar(
-          backgroundImage: FileImage(File(profileImage!.path)), radius: 60);
+          backgroundImage: FileImage(File(profileImage!.path)), radius: 80);
     } else {
       if (_pickImage != null) {
         return CircleAvatar(
           backgroundImage: NetworkImage(_pickImage),
-          radius: 60,
+          radius: 80,
         );
       } else
         return CircleAvatar(
-          maxRadius: 60,
+          maxRadius: 80,
           child: Icon(Icons.supervised_user_circle_outlined),
         );
     }
@@ -59,210 +50,154 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade200,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         elevation: 0,
-        title: Text("Profil Bilgileri"),
+        leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded)),
+        iconTheme: IconThemeData(
+          color: Const.kPurple,
+        ),
+        actions: [
+          IconButton(onPressed: () async{
+           await context.push(EditProfile(userModel: widget.userModel));
+           setState(() {
+             
+           });
+          }, icon: Icon(Icons.mode_edit_outlined))
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Material(
-          elevation: 5,
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ListView(
-              children: [
-                SizedBox(
-                  height: 30,
-                ),
-                Center(
-                  child: Stack(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          _onImageButtonPressed(ImageSource.gallery,
-                              context: context);
-                        },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: imagePlace(),
-                        ),
-                      ),
-                      Positioned(
-                          left: 0,
-                          bottom: 5,
-                          child: Icon(
-                            Icons.camera_alt_rounded,
-                            size: 30,
-                          ))
-                    ],
+      body: buildBody(context),
+    );
+  }
+
+  Widget buildBody(BuildContext context) {
+    return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          Container(
+            width: double.maxFinite,
+            decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Const.kPurple.withOpacity(0.25),
+                    offset: Offset(0, 7),
+                    blurRadius: 12,
                   ),
-                ),
-                SizedBox(
-                  height: 30,
-                ),
-                Divider(),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                ],
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                )),
+            child: IntrinsicHeight(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  imagePlace(),
+                  SizedBox(height: 30),
+                  Text(
+                    widget.userModel.userName ?? "",
+                    style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 25),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
                     child: Text(
-                      "Kişisel bilgi",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Colors.black),
+                      "    " +
+                          (widget.userModel.bio ??
+                              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"),
+                      style: TextStyle(fontSize: 16),
+                      textAlign: TextAlign.justify,
                     ),
                   ),
-                ),
-                SizedBox(
-                  height: 10,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: TextField(
-                      controller: _nameController,
-                      style: TextStyle(
-                        color: Colors.black,
-                      ),
-                      cursorColor: Colors.black,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                          prefixIcon: Icon(
-                            Icons.person,
-                            color: Colors.black,
-                          ),
-                          hintText: 'Kullanıcı adı',
-                          prefixText: ' ',
-                          hintStyle: TextStyle(color: Colors.black),
-                          focusColor: Colors.black,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10)))),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: TextField(
-                      controller: _emailController,
-                      style: TextStyle(
-                        color: Colors.black,
-                      ),
-                      cursorColor: Colors.black,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                          prefixIcon: Icon(
-                            Icons.mail,
-                            color: Colors.black,
-                          ),
-                          hintText: 'E-Mail',
-                          prefixText: ' ',
-                          hintStyle: TextStyle(color: Colors.black),
-                          focusColor: Colors.black,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10)))),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: TextField(
-                      maxLines: 5,
-                      controller: _bio,
-                      style: TextStyle(
-                        color: Colors.black,
-                      ),
-                      cursorColor: Colors.black,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                          hintText: 'Biografi',
-                          prefixText: ' ',
-                          hintStyle: TextStyle(color: Colors.black),
-                          focusColor: Colors.black,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10)))),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    InkWell(
-                      onTap: () async {
-                        UserModel userModel = widget.userModel;
-                        if (profileImage != null) {
-                          var mediaUrl = await storageService.uploadImage(
-                            profileImage!.path,
-                            _auth.currentUser!.uid,
-                          );
-                          userModel = userModel..image = mediaUrl;
-                        }
-                        userModel = userModel
-                          ..userName = _nameController.text
-                          ..email = _emailController.text
-                          ..bio = _bio.text;
-                        statusService.updateProfile(userModel);
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        height: 40,
-                        width: 150,
-                        decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(15)),
-                        child: Center(
-                            child: Text(
-                          "Bilgileri güncelle",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18),
-                        )),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          height: 40,
-                          width: 150,
-                          decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(15)),
-                          child: Center(
-                              child: Text(
-                            "Vazgeç",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18),
-                          )),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              ],
+                  SizedBox(height: 25),
+                  Text(
+                    widget.userModel.email ?? "",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+                  ),
+                  SizedBox(height: 25),
+                ],
+              ),
             ),
           ),
-        ),
+          SizedBox(
+            height: 15,
+          ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Const.kPurple.withOpacity(0.4),
+            endIndent: 30,
+            indent: 30,
+          ),
+          listTileWidget(
+            title: "Arkadaşlarınız",
+            leadingIcon: Icons.groups_outlined,
+          ),
+          listTileWidget(
+            title: "Yüklenen müzikler",
+            leadingIcon: Icons.music_note_rounded,
+          ),
+          listTileWidget(
+            title: "Bildirimler",
+            leadingIcon: Icons.notifications_none_rounded,
+          ),
+          listTileWidget(
+            title: "Engellenen kullanıcılar",
+            leadingIcon: Icons.person_off_outlined,
+          ),
+          listTileWidget(
+            title: "Güvenlik",
+            leadingIcon: Icons.security_rounded,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.symmetric(horizontal: 28),
+            leading: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.rotationZ(-pi),
+                child: Icon(
+                  Icons.logout_rounded,
+                  size: 30,
+                  color: Colors.redAccent,
+                )),
+            title: Text(
+              "Çıkış yap",
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  void _onImageButtonPressed(ImageSource source,
-      {required BuildContext context}) async {
-    try {
-      final pickedFile = await _pickerImage.pickImage(source: source);
-      setState(() {
-        profileImage = pickedFile!;
-        print("dosyaya geldim: $profileImage");
-        if (profileImage != null) {}
-      });
-      print('aaa');
-    } catch (e) {
-      setState(() {
-        _pickImage = e;
-        print("Image Error: " + _pickImage);
-      });
-    }
+  ListTile listTileWidget({
+    required String title,
+    required IconData leadingIcon,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 28),
+      leading: Icon(leadingIcon, color: Const.kPurple.withOpacity(0.4)),
+      title: Text(
+        title,
+        style: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.w600, color: Const.kPurple),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios_rounded,
+        size: 18,
+        color: Const.kPurple.withOpacity(0.4),
+      ),
+    );
   }
 }
+
+
+

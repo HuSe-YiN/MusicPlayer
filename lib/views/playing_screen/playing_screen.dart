@@ -38,6 +38,7 @@ class _PlayingScreenState extends State<PlayingScreen>
   @override
   void initState() {
     super.initState();
+    isFavorite = myData.getFavoriteSong().any((element) => element == song);
     PlayingScreen.isRunning = true;
     pageController = PageController();
     setMediaItem(updateQueue: true);
@@ -71,7 +72,27 @@ class _PlayingScreenState extends State<PlayingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade300,
       extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.grey.shade300,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Const.kPurple),
+        title: StreamMediaItem(builder: (song) {
+          isFavorite =
+              myData.getFavoriteSong().any((element) => element == song);
+          return AnimatedSwitcher(
+            duration: Duration(milliseconds: 500),
+            child: isFavorite
+                ? Text(
+                    "Favori Müziğiniz",
+                    style: TextStyle(color: Const.kPurple),
+                  )
+                : SizedBox(),
+          );
+        }),
+        centerTitle: true,
+      ),
       body: playingScreenBody(context),
     );
   }
@@ -86,38 +107,74 @@ class _PlayingScreenState extends State<PlayingScreen>
               ListView(
                 physics: NeverScrollableScrollPhysics(),
                 children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height -
-                        MediaQuery.of(context).padding.top,
+                  Container(
+                    margin: EdgeInsets.only(top: 20),
+                    padding: EdgeInsets.all(16),
+                    height: MediaQuery.of(context).size.height,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Const.kPurple,
+                          blurRadius: 12,
+                          spreadRadius: 0,
+                        ),
+
+                        // BoxShadow(
+
+                        //     color: Const.kPurple.withOpacity(0.4),
+                        //     blurRadius: -6,
+                        //     offset: Offset(0, -6)),
+                        // BoxShadow(
+                        //     color: Const.kPurple.withOpacity(0.4),
+                        //     blurRadius: -6,
+                        //     offset: Offset(0, -6)),
+                      ],
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(48),
+                      ),
+                    ),
                     child: Stack(
                       children: [
                         SingleChildScrollView(
                           physics: NeverScrollableScrollPhysics(),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 24, horizontal: 16),
+                                margin: EdgeInsets.symmetric(
+                                    horizontal: 0, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: Const.kPurple.withOpacity(0.3),
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(44),
+                                      bottom: Radius.circular(24)),
+                                ),
                                 child: Column(
                                   children: [
-                                    buildTopActions(),
                                     buildImageWidget(),
-                                    SizedBox(
-                                      height: 20,
-                                    ),
                                     buildTitleWidget(),
                                   ],
                                 ),
                               ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                child: buildSliderWidget(),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
+                              Container(
+                                padding: EdgeInsets.symmetric(vertical: 32),
+                                margin: EdgeInsets.symmetric(
+                                    horizontal: 0, vertical: 16),
+                                decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Const.kPurple.withOpacity(0.8),
+                                        blurRadius: 5,
+                                      ),
+                                    ]),
                                 child: Column(
                                   children: [
+                                    buildSliderWidget(),
                                     buildActionsWidget(),
                                   ],
                                 ),
@@ -154,74 +211,39 @@ class _PlayingScreenState extends State<PlayingScreen>
     );
   }
 
-  Padding buildTopActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            padding: EdgeInsets.zero,
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: Icon(Icons.keyboard_arrow_down_rounded, size: 40),
-          ),
-          StreamMediaItem(
-            builder: (song) {
-              if (song?.isOnline == false) {
-                return SizedBox();
-              }
-              return Row(
-                children: [
-                  if (song?.type.isVideo ?? true)
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () async {
-                        StreamManifest url =
-                            await yt.videos.streamsClient.getManifest(song!.id);
-                        context.push(
-                          VideoPlayerPage(
-                              isLocal: true,
-                              url: url.muxed.bestQuality.url.toString()),
-                        );
-                      },
-                      icon: Icon(Icons.youtube_searched_for_rounded, size: 30),
-                    ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () {},
-                    icon: Icon(Icons.person_search_rounded, size: 30),
-                  )
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Padding buildImageWidget() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Card(
-          elevation: 4,
-          child: StreamMediaItem(
-            builder: (song) {
-              if (song == null) return SizedBox();
-              return GestureDetector(
-                onDoubleTap: () {
-                  myData.addFavoriteSong(song);
-                },
-                child: song.getImageWidget,
-              );
+      child: StreamMediaItem(
+        builder: (song) {
+          isFavorite =
+              myData.getFavoriteSong().any((element) => element == song);
+          if (song == null) return SizedBox();
+          return GestureDetector(
+            onDoubleTap: () {
+              if (isFavorite) {
+                myData.removeFavoritedSong(song);
+              } else {
+                myData.addFavoriteSong(song);
+              }
+              setState(() {});
             },
-          ),
-        ),
+            child: Container(
+                height: MediaQuery.of(context).size.width / 1.4,
+                width: MediaQuery.of(context).size.width / 1.4,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(150),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Const.kPurple.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: Offset(5, 7)),
+                    ]),
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(150),
+                    child: song.getImageWidget)),
+          );
+        },
       ),
     );
   }
@@ -264,9 +286,6 @@ class _PlayingScreenState extends State<PlayingScreen>
                         },
                   icon: Icon(Icons.skip_previous),
                 ),
-                SizedBox(
-                  width: 6,
-                ),
                 StreamBuilder<bool>(
                   stream: handler.playingStream,
                   builder: (context, snapshot) {
@@ -282,9 +301,6 @@ class _PlayingScreenState extends State<PlayingScreen>
                       icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
                     );
                   },
-                ),
-                SizedBox(
-                  width: 6,
                 ),
                 IconButton(
                   onPressed: !handler.hasNext
@@ -327,38 +343,35 @@ class _PlayingScreenState extends State<PlayingScreen>
         children: [
           Positioned(
             top: 0,
-            right: 0,
-            left: 0,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  StreamBuilder<Duration>(
-                      stream: AudioService.position,
-                      builder: (context, snapshot) {
-                        return Text(
-                          Const.getDurationString(
-                              handler.playbackState.value.position),
-                        );
-                      }),
-                  StreamMediaItem(
-                    builder: (song) {
+            right: 16,
+            left: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                StreamBuilder<Duration>(
+                    stream: AudioService.position,
+                    builder: (context, snapshot) {
                       return Text(
                         Const.getDurationString(
-                          song?.duration ?? Duration.zero,
-                        ),
+                            handler.playbackState.value.position),
                       );
-                    },
-                  ),
-                ],
-              ),
+                    }),
+                StreamMediaItem(
+                  builder: (song) {
+                    return Text(
+                      Const.getDurationString(
+                        song?.duration ?? Duration.zero,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           Positioned(
-            top: 0,
-            right: 0,
-            left: 0,
+            top: 20,
+            right: 16,
+            left: 16,
             child: StreamMediaItem(
               builder: (song) {
                 return StreamBuilder<Duration>(
@@ -386,51 +399,59 @@ class _PlayingScreenState extends State<PlayingScreen>
     );
   }
 
-  Padding buildTitleWidget() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: StreamMediaItem(
-        builder: (song) {
-          return SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Hero(
-                  tag: "title",
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      song?.title ?? "Title",
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+  StreamMediaItem buildTitleWidget() {
+    return StreamMediaItem(
+      builder: (song) {
+        return Container(
+          width: double.maxFinite,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Hero(
+                tag: "title",
+                child: Material(
+                  color: Colors.transparent,
+                  child: Text(
+                    song?.title.trim() ?? "Title",
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      overflow: TextOverflow.ellipsis
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: 10,
-                ),
-                Hero(
-                  tag: "artist",
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      song?.artist ?? "Artist",
-                      style: TextStyle(
-                        fontSize: 13,
+              ),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Hero(
+                    tag: "artist",
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Text(
+                        song?.artist ?? "Artist",
+                        style: TextStyle(
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
+                  IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border_rounded,
+                  color: isFavorite ? Colors.redAccent : Const.kPurple,
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

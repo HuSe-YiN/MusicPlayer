@@ -98,14 +98,19 @@ extension MediaItemExt on MediaItem {
       "assets/images/default_song_image.png",
       fit: BoxFit.cover,
     );
+
     if (isOnline) {
-      return Image.network(
-        artUri!.toString(),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) {
-          return errorWidget;
-        },
-      );
+      if (isConnectivity!) {
+        return Image.network(
+          artUri!.toString(),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            return errorWidget;
+          },
+        );
+      } else {
+        return errorWidget;
+      }
     } else {
       return Image.file(
         File(artUri!.toFilePath()),
@@ -114,28 +119,29 @@ extension MediaItemExt on MediaItem {
           return errorWidget;
         },
       );
-      // int? id = int.tryParse(this.id);
-
-      // if (id == null) {
-      //   return errorWidget;
-      // }
-      // return FutureBuilder<Uint8List?>(
-      //   future: OnAudioQuery.platform.queryArtwork(id, ArtworkType.AUDIO),
-      //   builder: (c, snap) {
-      //     if (!snap.hasData) {
-      //       return errorWidget;
-      //     } else {
-      //       return Image.memory(
-      //         snap.data!,
-      //         fit: BoxFit.cover,
-      //         errorBuilder: (_, __, ___) {
-      //           return errorWidget;
-      //         },
-      //       );
-      //     }
-      //   },
-      // );
     }
+
+    // int? id = int.tryParse(this.id);
+
+    // if (id == null) {
+    //   return errorWidget;
+    // }
+    // return FutureBuilder<Uint8List?>(
+    //   future: OnAudioQuery.platform.queryArtwork(id, ArtworkType.AUDIO),
+    //   builder: (c, snap) {
+    //     if (!snap.hasData) {
+    //       return errorWidget;
+    //     } else {
+    //       return Image.memory(
+    //         snap.data!,
+    //         fit: BoxFit.cover,
+    //         errorBuilder: (_, __, ___) {
+    //           return errorWidget;
+    //         },
+    //       );
+    //     }
+    //   },
+    // );
   }
 
   Map<String, dynamic> get toMap {

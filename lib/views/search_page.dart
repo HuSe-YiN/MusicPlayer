@@ -35,10 +35,14 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 0,
         leading: BackButton(color: Const.kPurple),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: _searchBar(),
+        title: Padding(
+          padding: EdgeInsets.only(right: 8.0),
+          child: _searchBar(),
+        ),
       ),
       key: scaffoldKey,
       body: SafeArea(
@@ -132,18 +136,18 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 buildTitle("Youtube Müzikleri:"),
                 if (queue.length > 3)
-                TextButton(
-                  onPressed: () {
-                    context.push(
-                      SearchedAllQueue(
-                          queue: queue, searchText: searcController.text),
-                    );
-                  },
-                  child: Text(
-                    "Hepsini gör",
-                    style: TextStyle(color: Const.kPurple),
+                  TextButton(
+                    onPressed: () {
+                      context.push(
+                        SearchedAllQueue(
+                            queue: queue, searchText: searcController.text),
+                      );
+                    },
+                    child: Text(
+                      "Hepsini gör",
+                      style: TextStyle(color: Const.kPurple),
+                    ),
                   ),
-                ),
               ],
             ),
             Column(
@@ -183,18 +187,18 @@ class _SearchPageState extends State<SearchPage> {
           children: [
             buildTitle("Cihazdaki Müzikler:"),
             if (queue.length > 3)
-            TextButton(
-              onPressed: () {
-                context.push(
-                  SearchedAllQueue(
-                      queue: queue, searchText: searcController.text),
-                );
-              },
-              child: Text(
-                "Hepsini gör",
-                style: TextStyle(color: Const.kPurple),
+              TextButton(
+                onPressed: () {
+                  context.push(
+                    SearchedAllQueue(
+                        queue: queue, searchText: searcController.text),
+                  );
+                },
+                child: Text(
+                  "Hepsini gör",
+                  style: TextStyle(color: Const.kPurple),
+                ),
               ),
-            ),
           ],
         ),
         Column(
@@ -238,35 +242,60 @@ class _SearchPageState extends State<SearchPage> {
         borderRadius: BorderRadius.circular(50),
         color: Const.kPurple,
       ),
-      child: Center(
-        child: TextField(
-          onSubmitted: (c) {
-            setState(() {});
-          },
-          textInputAction: TextInputAction.search,
-          cursorColor: Color.fromARGB(255, 255, 255, 255),
-          cursorWidth: 0.5,
-          controller: searcController,
-          style: TextStyle(
-              color: Color.fromARGB(255, 255, 255, 255),
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.5),
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.only(left: 20, top: 10),
-            border: InputBorder.none,
-            hintText: "Müzik ara",
-            hintStyle: TextStyle(
-                color: Color.fromARGB(255, 255, 255, 255).withOpacity(0.7),
-                fontSize: 16.5),
-            suffixIcon: Icon(
-              Icons.search,
-              color: Const.kPurple,
-            ),
+      child: TextField(
+        onSubmitted: (c) {
+          setState(() {});
+        },
+        textInputAction: TextInputAction.search,
+        cursorColor: Color.fromARGB(255, 255, 255, 255),
+        cursorWidth: 0.5,
+        controller: searcController,
+        style: TextStyle(
+            color: Color.fromARGB(255, 255, 255, 255),
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.5),
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.only(left: 20, top: 10),
+          border: InputBorder.none,
+          hintText: "Müzik ara",
+          hintStyle: TextStyle(
+              color: Color.fromARGB(255, 255, 255, 255).withOpacity(0.7),
+              fontSize: 14),
+          suffixIcon: AnimatedBuilder(
+            builder: ((context, child) {
+              return AnimatedCrossFade(
+                firstChild: IconButton(
+                  icon: Icon(
+                    Icons.close,
+                  ),
+                  onPressed: () {
+                    searcController.clear();
+                  },
+                  color: Colors.white,
+                ),
+                secondChild: SizedBox(width: 36,height: 36,),
+                duration: Duration(milliseconds: 300),
+                crossFadeState: searcController.text.isEmpty
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+              );
+            }),
+            animation: searcController,
           ),
         ),
       ),
     );
   }
 }
+
+// searcController!=""? InkWell(
+//             onTap: () {
+//               searcController.clear();
+//             },
+//             child: Icon(
+//               Icons.close,
+//               color: Const.kWhite,
+//             ),
+//           ):SizedBox(),

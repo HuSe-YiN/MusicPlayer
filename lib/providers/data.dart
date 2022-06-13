@@ -145,7 +145,7 @@ class MyData extends ChangeNotifier {
     if (mode == AudioServiceRepeatMode.one) {
       return Icon(Icons.repeat_one_rounded);
     } else if (mode == AudioServiceRepeatMode.all) {
-      return Icon(Icons.repeat);
+      return Icon(Icons.repeat_rounded);
     } else
       return Icon(
         Icons.repeat_rounded,

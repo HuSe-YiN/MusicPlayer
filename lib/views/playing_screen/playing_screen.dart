@@ -86,12 +86,13 @@ class _PlayingScreenState extends State<PlayingScreen>
             child: isFavorite
                 ? Text(
                     "Favori Müziğiniz",
-                    style: TextStyle(color: Const.kPurple),
+                    style: TextStyle(color: Const.kPurple, fontSize: 14),
                   )
                 : SizedBox(),
           );
         }),
         centerTitle: true,
+        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.more_vert))],
       ),
       body: playingScreenBody(context),
     );
@@ -114,7 +115,7 @@ class _PlayingScreenState extends State<PlayingScreen>
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Const.kPurple,
+                          color: Const.kPurple.withOpacity(0.3),
                           blurRadius: 12,
                           spreadRadius: 0,
                         ),
@@ -141,37 +142,26 @@ class _PlayingScreenState extends State<PlayingScreen>
                           child: Column(
                             // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 24, horizontal: 16),
-                                margin: EdgeInsets.symmetric(
-                                    horizontal: 0, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: Const.kPurple.withOpacity(0.3),
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(44),
-                                      bottom: Radius.circular(24)),
-                                ),
-                                child: Column(
-                                  children: [
-                                    buildImageWidget(),
-                                    buildTitleWidget(),
-                                  ],
-                                ),
+                              Column(
+                                children: [
+                                  buildImageWidget(),
+                                  buildTitleWidget(),
+                                ],
                               ),
                               Container(
                                 padding: EdgeInsets.symmetric(vertical: 32),
                                 margin: EdgeInsets.symmetric(
                                     horizontal: 0, vertical: 16),
                                 decoration: BoxDecoration(
-                                    color: Colors.grey.shade300,
-                                    borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Const.kPurple.withOpacity(0.8),
-                                        blurRadius: 5,
-                                      ),
-                                    ]),
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    // BoxShadow(
+                                    //   color: Const.kPurple.withOpacity(0.8),
+                                    //   blurRadius: 5,
+                                    // ),
+                                  ],
+                                ),
                                 child: Column(
                                   children: [
                                     buildSliderWidget(),
@@ -211,40 +201,43 @@ class _PlayingScreenState extends State<PlayingScreen>
     );
   }
 
-  Padding buildImageWidget() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: StreamMediaItem(
-        builder: (song) {
-          isFavorite =
-              myData.getFavoriteSong().any((element) => element == song);
-          if (song == null) return SizedBox();
-          return GestureDetector(
-            onDoubleTap: () {
-              if (isFavorite) {
-                myData.removeFavoritedSong(song);
-              } else {
-                myData.addFavoriteSong(song);
-              }
-              setState(() {});
-            },
-            child: Container(
-                height: MediaQuery.of(context).size.width / 1.4,
-                width: MediaQuery.of(context).size.width / 1.4,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(150),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Const.kPurple.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: Offset(5, 7)),
-                    ]),
-                child: ClipRRect(
-                    borderRadius: BorderRadius.circular(150),
-                    child: song.getImageWidget)),
-          );
-        },
-      ),
+  StreamMediaItem buildImageWidget() {
+    return StreamMediaItem(
+      builder: (song) {
+        isFavorite = myData.getFavoriteSong().any((element) => element == song);
+        if (song == null) return SizedBox();
+        return GestureDetector(
+          onDoubleTap: () {
+            if (isFavorite) {
+              myData.removeFavoritedSong(song);
+            } else {
+              myData.addFavoriteSong(song);
+            }
+            setState(() {});
+          },
+          child: Container(
+              margin: EdgeInsets.only(top: 4, bottom: 20),
+              height: MediaQuery.of(context).size.width / 1,
+              width: MediaQuery.of(context).size.width / 1,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(48),
+                    bottom: Radius.circular(12),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Const.kPurple.withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: Offset(4, 6)),
+                  ]),
+              child: ClipRRect(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(48),
+                    bottom: Radius.circular(12),
+                  ),
+                  child: song.getImageWidget)),
+        );
+      },
     );
   }
 
@@ -269,7 +262,7 @@ class _PlayingScreenState extends State<PlayingScreen>
                         : AudioServiceShuffleMode.all);
                     setState(() {});
                   },
-                  icon: Icon(Icons.shuffle),
+                  icon: Icon(Icons.shuffle_rounded),
                   iconSize: 20,
                   color: isShuffleMode ? Colors.black : Colors.black54,
                 );
@@ -284,23 +277,36 @@ class _PlayingScreenState extends State<PlayingScreen>
                           await handler.skipToPrevious();
                           handler.play();
                         },
-                  icon: Icon(Icons.skip_previous),
+                  icon: Icon(Icons.skip_previous_rounded, size: 35),
                 ),
-                StreamBuilder<bool>(
-                  stream: handler.playingStream,
-                  builder: (context, snapshot) {
-                    bool isPlaying = snapshot.data ?? false;
-                    return IconButton(
-                      onPressed: () async {
-                        if (isPlaying) {
-                          handler.pause();
-                        } else {
-                          handler.play();
-                        }
-                      },
-                      icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-                    );
-                  },
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Const.kWhite,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: StreamBuilder<bool>(
+                    stream: handler.playingStream,
+                    builder: (context, snapshot) {
+                      bool isPlaying = snapshot.data ?? false;
+                      return IconButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () async {
+                          if (isPlaying) {
+                            handler.pause();
+                          } else {
+                            handler.play();
+                          }
+                        },
+                        icon: Icon(
+                          isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          size: 45,
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 IconButton(
                   onPressed: !handler.hasNext
@@ -309,7 +315,10 @@ class _PlayingScreenState extends State<PlayingScreen>
                           await handler.skipToNext();
                           handler.play();
                         },
-                  icon: Icon(Icons.skip_next),
+                  icon: Icon(
+                    Icons.skip_next_rounded,
+                    size: 35,
+                  ),
                 ),
               ],
             ),
@@ -354,6 +363,7 @@ class _PlayingScreenState extends State<PlayingScreen>
                       return Text(
                         Const.getDurationString(
                             handler.playbackState.value.position),
+                        style: TextStyle(fontSize: 12),
                       );
                     }),
                 StreamMediaItem(
@@ -362,6 +372,7 @@ class _PlayingScreenState extends State<PlayingScreen>
                       Const.getDurationString(
                         song?.duration ?? Duration.zero,
                       ),
+                      style: TextStyle(fontSize: 12),
                     );
                   },
                 ),
@@ -371,7 +382,7 @@ class _PlayingScreenState extends State<PlayingScreen>
           Positioned(
             top: 20,
             right: 16,
-            left: 16,
+            left: 10,
             child: StreamMediaItem(
               builder: (song) {
                 return StreamBuilder<Duration>(
@@ -416,14 +427,12 @@ class _PlayingScreenState extends State<PlayingScreen>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      overflow: TextOverflow.ellipsis
-                    ),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        overflow: TextOverflow.ellipsis),
                   ),
                 ),
               ),
-              
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -434,18 +443,29 @@ class _PlayingScreenState extends State<PlayingScreen>
                       child: Text(
                         song?.artist ?? "Artist",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
+                          color: Const.kPurple,
                         ),
                       ),
                     ),
                   ),
                   IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border_rounded,
-                  color: isFavorite ? Colors.redAccent : Const.kPurple,
-                ),
-              ),
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      if (isFavorite) {
+                        myData.removeFavoritedSong(song!);
+                      } else {
+                        myData.addFavoriteSong(song!);
+                      }
+                      setState(() {});
+                    },
+                    icon: Icon(
+                      isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border_rounded,
+                      color: isFavorite ? Colors.redAccent : Colors.grey.shade400,
+                    ),
+                  ),
                 ],
               ),
             ],

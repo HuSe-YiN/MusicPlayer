@@ -18,7 +18,7 @@ import 'views/splash.dart';
 Box<List<String>>? favoriteBox;
 Box<String>? cacheBox;
 late BackgroundAudioHandler handler;
-// bool isConnectivity;
+bool? isConnectivity;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -54,26 +54,29 @@ class MyApp extends StatelessWidget {
           child: StreamBuilder<ConnectivityResult>(
               stream: Connectivity().onConnectivityChanged,
               builder: (context, snapshot) {
-                if (snapshot.data == ConnectivityResult.mobile||snapshot.data==ConnectivityResult.wifi) {
-                  return MaterialApp(
-                    navigatorKey: navigatorKey,
-                    title: "online Music",
-                    color: Colors.black,
-                    debugShowCheckedModeBanner: false,
-                    themeMode: ThemeMode.dark,
-                    theme: ThemeData(
-                      appBarTheme: AppBarTheme(
-                        iconTheme: IconThemeData(color: Const.kWhite),
-                        backgroundColor: Color(0xff4F3453),
-                      ),
+                // isConnectivity=(snapshot.data == ConnectivityResult.mobile||snapshot.data==ConnectivityResult.wifi);
+                return MaterialApp(
+                  navigatorKey: navigatorKey,
+                  title: "online Music",
+                  color: Colors.black,
+                  debugShowCheckedModeBanner: false,
+                  themeMode: ThemeMode.dark,
+                  theme: ThemeData(
+                    appBarTheme: AppBarTheme(
+                      iconTheme: IconThemeData(color: Const.kWhite),
+                      backgroundColor: Const.kPurple,
                     ),
-                    home: SplashScreen(),
-                  );
-                } else {
-                  return Center(
-                    child: Text("İnternet Bağlantınızı kontrol ediniz "),
-                  );
-                }
+                  ),
+                  builder: (context, child) {
+                    final MediaQueryData data = MediaQuery.of(context);
+                    return MediaQuery(
+                        data: data.copyWith(
+                          textScaleFactor: 1,
+                        ),
+                        child: child!);
+                  },
+                  home: SplashScreen(),
+                );
               }),
         ),
         changeLifecycle: (state) {

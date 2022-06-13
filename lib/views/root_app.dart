@@ -50,13 +50,15 @@ class _RootAppState extends State<RootApp> {
           _bottomPageNotifier.value = s;
         },
         children: [
+          if(isConnectivity!)
           HomePage(),
           FavoritePage(),
           
           LibraryPage(),
         ],
       ),
-      floatingActionButton: ClipRRect(
+      
+      floatingActionButton: isConnectivity!? ClipRRect(
         borderRadius: BorderRadius.circular(50),
         child: BackdropFilter(
           filter: ImageFilter.blur(
@@ -88,7 +90,7 @@ class _RootAppState extends State<RootApp> {
             icon: Icon(Icons.add, color: Const.kWhite,),
           ),
         ),
-      ),
+      ) :SizedBox(),
       bottomNavigationBar: ValueListenableBuilder<int>(
           valueListenable: _bottomPageNotifier,
           builder: (context, v, snapshot) {
@@ -110,6 +112,7 @@ class _RootAppState extends State<RootApp> {
                   _pageController.jumpToPage(i);
                 },
                 items: [
+                  if(isConnectivity!)
                   SalomonBottomBarItem(
                     selectedColor: Const.kPurple,
                     unselectedColor: Const.kPurple.withOpacity(0.4),
